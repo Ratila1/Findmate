@@ -1,0 +1,90 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    tools:context=".RegisterMenuActivity">
+
+    <!-- Кнопки в первом ConstraintLayout -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+
+        <ImageView
+            android:id="@+id/imageView21"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.3"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/backgroundph" />
+
+
+        <Button
+            android:id="@+id/buttonSignUp"
+            android:layout_width="203dp"
+            android:layout_height="114dp"
+            android:background="@drawable/button2"
+            android:fontFamily="@font/fontbold"
+            android:text="@string/SignUp"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <Button
+            android:id="@+id/buttonSignIn"
+            android:layout_width="207dp"
+            android:layout_height="115dp"
+            android:background="@drawable/button1"
+            android:fontFamily="@font/fontbold"
+            android:text="@string/SignIn"
+            android:textColor="@color/green1"
+            android:textSize="22sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/buttonSignUp"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/textView4"
+            android:layout_width="280dp"
+            android:layout_height="107dp"
+            android:layout_marginStart="81dp"
+            android:layout_marginTop="312dp"
+            android:layout_marginEnd="81dp"
+            android:fontFamily="@font/fontreg"
+            android:foregroundGravity="center"
+            android:gravity="center_horizontal"
+            android:text="@string/Menu2"
+            android:textColor="#000000"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.516"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="456dp"
+            android:layout_height="55dp"
+            android:layout_marginStart="39dp"
+            android:layout_marginTop="260dp"
+            android:layout_marginEnd="12dp"
+            android:fontFamily="@font/fontbold"
+            android:gravity="center_horizontal"
+            android:text="@string/Menu1"
+            android:textColor="#000000"
+            android:textSize="36sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</RelativeLayout>

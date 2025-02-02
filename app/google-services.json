@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "236372994847",
+    "firebase_url": "https://findmate-9bad1-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "findmate-9bad1",
+    "storage_bucket": "findmate-9bad1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:236372994847:android:daef2c051d23a1c0f99e2a",
+        "android_client_info": {
+          "package_name": "com.ratila.findmate"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "236372994847-s2evtqu0umg403db06auu2k791g6crft.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ratila.findmate",
+            "certificate_hash": "ea4ab7c028377dc64be2282f80790cf157c30d47"
+          }
+        },
+        {
+          "client_id": "236372994847-si3af1ddaa9eji8tlets7h4nk2b3u60e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZl9EW-XQ0T4rfXMF3_ZUJb8dykBA0LTM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "236372994847-si3af1ddaa9eji8tlets7h4nk2b3u60e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

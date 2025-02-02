@@ -1,0 +1,5 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@android:color/transparent" /> <!-- Прозрачный фон -->
+    <stroke android:width="2dp" android:color="@android:color/black" /> <!-- Черная обводка толщиной 2 пикселя -->
+    <corners android:radius="4dp" /> <!-- Опционально, можно изменить радиус углов или убрать -->
+</shape>

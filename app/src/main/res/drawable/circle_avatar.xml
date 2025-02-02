@@ -1,0 +1,4 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#CCCCCC" /> <!-- Цвет фона, можно сделать светло-серым -->
+    <corners android:radius="24dp" /> <!-- Радиус для создания круга, 24dp для круглого -->
+</shape>
