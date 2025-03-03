@@ -1,6 +1,8 @@
 package com.ratila.findmate;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -35,6 +37,9 @@ public class MenuAccount extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setNavigationBarColor(Color.parseColor("#2A7A78"));
+        }
 
         // Инициализация элементов
         imageMess = findViewById(R.id.imageMess);

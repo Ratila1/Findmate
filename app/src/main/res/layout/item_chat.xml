@@ -39,7 +39,10 @@
         android:fontFamily="@font/fontreg"
         android:text="Last message preview here..."
         android:textSize="14sp"
-        android:textColor="#666666" />
+        android:textColor="#666666"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:scrollHorizontally="false" />
 
     <!-- Время последнего сообщения -->
     <TextView

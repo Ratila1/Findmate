@@ -1,12 +1,12 @@
 plugins {
     alias(libs.plugins.android.application)
-    id("com.google.gms.google-services") // Добавлено подключение плагина Google Services
+    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.ratila.findmate"
     compileSdk = 34
-    buildToolsVersion = "36.0.0-rc3"
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         applicationId = "com.ratila.findmate"

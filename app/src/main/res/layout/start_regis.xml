@@ -4,7 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
-    tools:context=".RegisterMenuActivity">
+    tools:context=".RegisterMenuActivity"
+    android:fitsSystemWindows="true"
+    >
 
     <!-- Кнопки в первом ConstraintLayout -->
     <androidx.constraintlayout.widget.ConstraintLayout

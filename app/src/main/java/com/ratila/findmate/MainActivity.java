@@ -2,10 +2,14 @@ package com.ratila.findmate;
 
 import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,6 +42,7 @@ import java.io.InputStreamReader;
 import java.util.stream.Collectors;
 
 
+
 public class MainActivity extends AppCompatActivity {
     private static final String API_KEY = "AIzaSyBZl9EW-XQ0T4rfXMF3_ZUJb8dykBA0LTM";
     private FirebaseFirestore db;
@@ -48,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageView7, panel, imageChoose1, imageMess1, imageMenu1, imageView13;
     private static final String TAG = "MainActivity";
     private boolean isExpanded = false; // Флаг состояния imageView7
+    private ProgressBar loadingProgressBar;
+    private FrameLayout overlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +79,8 @@ public class MainActivity extends AppCompatActivity {
         imageChoose1.setZ(7);
         imageMess1.setZ(7);
         imageMenu1.setZ(7);
+        loadingProgressBar = findViewById(R.id.loadingProgressBar);
+        overlay = findViewById(R.id.overlay);
         findViewById(R.id.buttonNo).setOnClickListener(v -> showNextProfile());
         findViewById(R.id.buttonYes).setOnClickListener(v -> {
             likeCurrentProfile();
@@ -79,8 +88,12 @@ public class MainActivity extends AppCompatActivity {
 
 
         });
-
+        showLoading();
         setupMenuListeners();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setNavigationBarColor(Color.parseColor("#2A7A78"));
+        }
 
         // Логика для перемещения imageView7
         imageView7.setOnClickListener(v -> toggleImageViewPosition());
@@ -128,11 +141,15 @@ public class MainActivity extends AppCompatActivity {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
             Toast.makeText(this, "User is not authenticated. Please log in again.", Toast.LENGTH_SHORT).show();
+            hideLoading(); // Скрываем загрузку, если пользователь не авторизован
             return;
         }
 
         String currentUserUid = currentUser.getUid();
         Log.d("CurrentUser", "Current user UID: " + currentUserUid);
+
+        // Показываем загрузку перед получением данных
+        showLoading();
 
         // Очистка списка профилей
         profiles.clear();
@@ -148,22 +165,23 @@ public class MainActivity extends AppCompatActivity {
                         String userCity = documentSnapshot.getString("City");
                         String userCountry = documentSnapshot.getString("Country");
 
-                        // Получаем координаты города пользователя (предположим, что они уже есть в базе)
-                        double userLat = getLatitude(userCity, userCountry); // Замените на реальный метод получения широты
-                        double userLon = getLongitude(userCity, userCountry); // Замените на реальный метод получения долготы
+                        // Получаем координаты города пользователя
+                        double userLat = getLatitude(userCity, userCountry);
+                        double userLon = getLongitude(userCity, userCountry);
 
                         // Получаем все доступные профили
                         db.collection("app")
                                 .get()
                                 .addOnSuccessListener(queryDocumentSnapshots -> {
                                     Log.d("LoadProfiles", "Documents loaded: " + queryDocumentSnapshots.size());
+
                                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                                         String profileUid = document.getString("UID");
                                         String visibility = document.getString("visibility");
 
                                         // Проверка видимости профиля
                                         if (visibility != null && visibility.equals("no")) {
-                                            continue;  // Пропускаем скрытые профили
+                                            continue; // Пропускаем скрытые профили
                                         }
 
                                         Log.d("LoadProfiles", "Profile UID: " + profileUid);
@@ -182,13 +200,23 @@ public class MainActivity extends AppCompatActivity {
 
                                     // Сортировка профилей
                                     profiles.sort((p1, p2) -> {
-                                        double distance1 = calculateDistance(userLat, userLon, getLatitude(p1.get("City").toString(), p1.get("Country").toString()), getLongitude(p1.get("City").toString(), p1.get("Country").toString()));
-                                        double distance2 = calculateDistance(userLat, userLon, getLatitude(p2.get("City").toString(), p2.get("Country").toString()), getLongitude(p2.get("City").toString(), p2.get("Country").toString()));
+                                        double distance1 = calculateDistance(
+                                                userLat,
+                                                userLon,
+                                                getLatitude(p1.get("City").toString(), p1.get("Country").toString()),
+                                                getLongitude(p1.get("City").toString(), p1.get("Country").toString())
+                                        );
+                                        double distance2 = calculateDistance(
+                                                userLat,
+                                                userLon,
+                                                getLatitude(p2.get("City").toString(), p2.get("Country").toString()),
+                                                getLongitude(p2.get("City").toString(), p2.get("Country").toString())
+                                        );
 
                                         int matches1 = countKeywordMatches(userDopopis, p1.get("Dopopis").toString());
                                         int matches2 = countKeywordMatches(userDopopis, p2.get("Dopopis").toString());
 
-                                        // Весовые коэффициенты (можно настроить)
+                                        // Весовые коэффициенты
                                         double weightDistance = 0.7;
                                         double weightMatches = 0.3;
 
@@ -202,27 +230,48 @@ public class MainActivity extends AppCompatActivity {
                                     if (!profiles.isEmpty()) {
                                         Log.d("LoadProfiles", "Profiles available: " + profiles.size());
                                         displayProfile(currentProfileIndex);
-                                        imageView13.setVisibility(View.VISIBLE);  // Показываем картинку, если есть подходящие профили
+                                        imageView13.setVisibility(View.VISIBLE); // Показываем картинку
                                     } else {
                                         Log.d("LoadProfiles", "No profiles found.");
                                         Toast.makeText(this, "No profiles found.", Toast.LENGTH_SHORT).show();
-                                        imageView13.setVisibility(View.INVISIBLE);  // Скрываем картинку, если нет профилей
+                                        imageView13.setVisibility(View.INVISIBLE); // Скрываем картинку
                                     }
+
+                                    // Скрываем загрузку после завершения
+                                    hideLoading();
                                 })
                                 .addOnFailureListener(e -> {
                                     Log.e("LoadProfilesError", "Error loading profiles: ", e);
                                     Toast.makeText(this, "Failed to load profiles: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                    hideLoading(); // Скрываем загрузку при ошибке
                                 });
                     } else {
                         Toast.makeText(this, "User's Fexp data not found.", Toast.LENGTH_SHORT).show();
+                        hideLoading(); // Скрываем загрузку, если данные пользователя не найдены
                     }
                 })
                 .addOnFailureListener(e -> {
                     Log.e("LoadUserError", "Error loading user Fexp: ", e);
                     Toast.makeText(this, "Failed to load user data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    hideLoading(); // Скрываем загрузку при ошибке
                 });
     }
 
+    // Метод для показа загрузки
+    private void showLoading() {
+        if (loadingProgressBar != null && overlay != null) {
+            loadingProgressBar.setVisibility(View.VISIBLE);
+            overlay.setVisibility(View.VISIBLE);
+        }
+    }
+
+    // Метод для скрытия загрузки
+    private void hideLoading() {
+        if (loadingProgressBar != null && overlay != null) {
+            loadingProgressBar.setVisibility(View.GONE);
+            overlay.setVisibility(View.GONE);
+        }
+    }
     public static double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         final int R = 6371; // Радиус Земли в километрах
 
@@ -419,7 +468,6 @@ public class MainActivity extends AppCompatActivity {
                 if (currentUserProfile != null) {
                     String userFexp1 = (String) currentUserProfile.getOrDefault("Fexp1", "");
                     String userFexp2 = (String) currentUserProfile.getOrDefault("Fexp2", "");
-
                     if (!exp1.equals(userFexp1) && !exp2.equals(userFexp2)) {
                         return; // Пропускаем этот профиль, если специализация не совпадает
                     }
@@ -427,7 +475,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // Обновляем текстовые поля
-            ageName.setText(String.format("%s %s", firstName, lastName));
+            ageName.setText(formatName(firstName, lastName));
             textView20.setText(String.format("Возраст: %s", age > 0 ? age.toString() : "Не указан"));
             textView27.setText(String.format("Специальность: %s, %s", exp1, exp2));
             textView26.setText(String.format("Город: %s, %s", city, country));
@@ -454,6 +502,14 @@ public class MainActivity extends AppCompatActivity {
             Log.d("DisplayProfile", "No profile to display at index: " + index);
             Toast.makeText(this, "No more profiles to show.", Toast.LENGTH_SHORT).show();
         }
+    }
+    private String formatName(String firstName, String lastName) {
+        String fullName = firstName + " " + lastName;
+        int maxLength = 15; // Максимальная длина в одной строке
+        if (fullName.length() > maxLength) {
+            return fullName.replace(" ", "\n"); // Заменяет пробел на перенос строки
+        }
+        return fullName;
     }
 
 
@@ -503,7 +559,7 @@ public class MainActivity extends AppCompatActivity {
             // Показываем описание
             textView31.setVisibility(View.VISIBLE);
             textView36.setVisibility(View.VISIBLE);
-            textView31.setText("Дополнительное описание: " + getDopopis());  // Загружаем дополнительное описание
+            textView31.setText(getDopopis());  // Загружаем дополнительное описание
         }
 
         // Увеличиваем Z-индекс для поднятых элементов
@@ -525,7 +581,40 @@ public class MainActivity extends AppCompatActivity {
 
         // Получаем доп. описание из текущего профиля
         Map<String, Object> profile = profiles.get(currentProfileIndex);
-        return (String) profile.getOrDefault("Dopopis", "Описание отсутствует");
+        String dopopis = (String) profile.getOrDefault("Dopopis", "Описание отсутствует");
+
+        // Максимальная длина строки и количество строк
+        int maxCharsPerLine = 40;
+        int maxLines = 7;
+
+        // Разбиваем текст на слова
+        String[] words = dopopis.split(" ");
+        StringBuilder wrappedText = new StringBuilder();
+        StringBuilder currentLine = new StringBuilder();
+        int lineCount = 0;
+
+        for (String word : words) {
+            // Проверяем, поместится ли слово в текущую строку
+            if (currentLine.length() + word.length() + 1 > maxCharsPerLine) {
+                // Если достигнуто максимальное количество строк, добавляем "..."
+                if (++lineCount >= maxLines) {
+                    wrappedText.append("...");
+                    break;
+                }
+                // Добавляем текущую строку в текст и начинаем новую
+                wrappedText.append(currentLine.toString().trim()).append("\n");
+                currentLine.setLength(0);
+            }
+            // Добавляем слово в текущую строку
+            currentLine.append(word).append(" ");
+        }
+
+        // Добавляем последнюю строку
+        if (currentLine.length() > 0 && lineCount < maxLines) {
+            wrappedText.append(currentLine.toString().trim());
+        }
+
+        return "Дополнительное описание:\n" + wrappedText.toString();
     }
 
     private void animateView(View view, int newMarginTop) {

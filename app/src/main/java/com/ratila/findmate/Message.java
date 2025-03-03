@@ -7,18 +7,28 @@ import java.util.Locale;
 import java.util.Map;
 
 public class Message {
+    private String sender; // Должно называться sender, как в правилах
     private String userName;
     private String textMessage;
     private long messageTime;
 
     public Message() {
-        // Пустой конструктор необходим для Firebase
+        // Пустой конструктор для Firebase
     }
 
-    public Message(String userName, String textMessage) {
+    public Message(String sender, String userName, String textMessage, long messageTime) {
+        this.sender = sender;
         this.userName = userName;
         this.textMessage = textMessage;
-        this.messageTime = System.currentTimeMillis();
+        this.messageTime = messageTime;
+    }
+
+    public String getSender() {
+        return sender;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public String getUserName() {

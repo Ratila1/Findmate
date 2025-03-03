@@ -3,9 +3,14 @@ package com.ratila.findmate;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.format.DateFormat;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -14,139 +19,164 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.database.FirebaseListAdapter;
 import com.firebase.ui.database.FirebaseListOptions;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.Query;
-import com.google.firebase.database.ValueEventListener;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import java.util.ArrayList;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import android.util.Log;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
-import android.text.format.DateFormat;
 
 public class Chat extends AppCompatActivity {
-    public static int SIGN_IN_CODE = 1;
+    public static final int SIGN_IN_CODE = 1;
     private RelativeLayout chat;
     private FirebaseListAdapter<Message> adapter;
-    private FloatingActionButton sendBtn;
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == SIGN_IN_CODE){
-            if(resultCode == RESULT_OK){
-                Snackbar.make(chat, "Вы авторизованы", Snackbar.LENGTH_LONG).show();
-                displayAllMessages();
-            } else{
-                Snackbar.make(chat, "Вы не авторизованы", Snackbar.LENGTH_LONG).show();
-                finish();
-            }
-        }
-    }
+    private Button sendBtn;
+    private String chatId;
+    private String userName; // Для хранения имени пользователя
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
+
         chat = findViewById(R.id.main);
         sendBtn = findViewById(R.id.btnSend);
-        sendBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                EditText textField = findViewById(R.id.messageField);
+        TextView userNameTextView = findViewById(R.id.userName);
+        Button backButton = findViewById(R.id.backButton); // Добавляем кнопку назад
 
-                // Проверяем, чтобы поле ввода не было пустым
-                if (textField.getText().toString().trim().isEmpty()) {
-                    Log.d("Chat", "Message is empty. Skipping sending.");
-                    return;
-                }
+        // Получаем chat_id и user_name из Intent
+        chatId = getIntent().getStringExtra("chat_id");
+        userName = getIntent().getStringExtra("user_name");
 
-                // Лог для проверки перед отправкой сообщения
-                Log.d("Chat", "Attempting to send message: " + textField.getText().toString().trim());
+        if (chatId == null || userName == null) {
+            Log.e("Chat", "Chat ID or User Name is null. Exiting.");
+            finish();
+            return;
+        }
 
-                // Пытаемся отправить сообщение в Firebase
-                FirebaseDatabase.getInstance().getReference("messages").push().setValue(
-                        new Message(
-                                FirebaseAuth.getInstance().getCurrentUser().getEmail(),
-                                textField.getText().toString()
-                        )
-                ).addOnSuccessListener(aVoid -> {
-                    // Лог успеха
-                    Log.d("Chat", "Message sent successfully.");
-                }).addOnFailureListener(e -> {
-                    // Лог ошибки
-                    Log.e("Chat", "Failed to send message.", e);
-                });
+        // Устанавливаем имя пользователя в TextView
+        userNameTextView.setText(userName);
 
-                // Очищаем поле ввода
-                textField.setText("");
-            }
+        backButton.setOnClickListener(v -> {
+            Intent intent = new Intent(Chat.this, Chats.class);
+            startActivity(intent);
+            finish(); // Закрываем текущий чат
         });
-        if (FirebaseAuth.getInstance().getCurrentUser() == null)
+
+        sendBtn.setOnClickListener(v -> {
+            EditText textField = findViewById(R.id.messageField);
+            String messageText = textField.getText().toString().trim();
+            if (messageText.isEmpty()) {
+                Log.d("Chat", "Message is empty. Skipping sending.");
+                return;
+            }
+
+            final String senderId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+            // Получаем имя пользователя из Firestore
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            db.collection("app").document(senderId).get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            String userName = documentSnapshot.getString("FirstName") + " " + documentSnapshot.getString("LastName");
+                            DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference("chats").child(chatId).child("messages");
+                            String messageId = chatRef.push().getKey();
+                            Message message = new Message(
+                                    senderId,
+                                    userName,
+                                    messageText,
+                                    System.currentTimeMillis()
+                            );
+                            chatRef.child(messageId).setValue(message)
+                                    .addOnSuccessListener(aVoid -> Log.d("Chat", "Message sent successfully."))
+                                    .addOnFailureListener(e -> Log.e("Chat", "Failed to send message.", e));
+                            textField.setText("");
+                        } else {
+                            Log.e("Chat", "User data not found.");
+                        }
+                    })
+                    .addOnFailureListener(e -> Log.e("Chat", "Failed to get user name.", e));
+        });
+
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             startActivityForResult(AuthUI.getInstance().createSignInIntentBuilder().build(), SIGN_IN_CODE);
-        else {
+        } else {
             Snackbar.make(chat, "Вы авторизованы", Snackbar.LENGTH_LONG).show();
-            displayAllMessages();
+            displayAllMessages(chatId);
         }
     }
 
-    private void displayAllMessages() {
-        Log.d("Chat", "Initializing ListView and FirebaseListAdapter.");
+    // Обрабатываем системную кнопку "Назад"
+    @Override
+    public void onBackPressed() {
+        // Запускаем активность Chats
+        Intent intent = new Intent(Chat.this, Chats.class);
+        startActivity(intent);
+
+        // Закрываем текущую активность
+        finish();
+
+        // Вызываем super.onBackPressed(), если необходимо сохранить стандартное поведение
+        super.onBackPressed();
+    }
+
+
+    private void displayAllMessages(String chatId) {
+        Log.d("Chat", "Displaying messages for chat_id: " + chatId);
 
         ListView listOfMessages = findViewById(R.id.list_of_messages);
 
-        // Создание Query для Firebase Database
-        Query query = FirebaseDatabase.getInstance().getReference("messages").orderByChild("messageTime");
-        Log.d("Chat", "Firebase query created: " + query.toString());
+        Query query = FirebaseDatabase.getInstance().getReference("chats")
+                .child(chatId)
+                .child("messages")
+                .orderByChild("messageTime");
 
-        // Настройка FirebaseListOptions
+
         FirebaseListOptions<Message> options = new FirebaseListOptions.Builder<Message>()
-                .setQuery(query, Message.class) // Указываем запрос и класс модели
-                .setLayout(R.layout.list_item) // Указываем макет для элемента списка
+                .setQuery(query, Message.class)
+                .setLayout(R.layout.list_item)
                 .build();
 
-        // Создание адаптера
-        adapter = new FirebaseListAdapter<Message>(options) {
+        adapter = new FirebaseListAdapter<>(options) {
             @Override
             protected void populateView(@NonNull View v, @NonNull Message model, int position) {
-                TextView mess_user, mess_time, mess_text;
+                TextView mess_time = v.findViewById(R.id.message_time);
+                TextView mess_text = v.findViewById(R.id.message_text);
+                LinearLayout messageContainer = v.findViewById(R.id.message_container);
 
-                // Найти элементы в макете
-                mess_user = v.findViewById(R.id.message_user);
-                mess_time = v.findViewById(R.id.message_time);
-                mess_text = v.findViewById(R.id.message_text);
+                // Контейнер под размер текста
+                ViewGroup.LayoutParams params = messageContainer.getLayoutParams();
+                params.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+                messageContainer.setLayoutParams(params);
 
-                // Логирование данных
-                Log.d("Chat", "Populating view with message: " +
-                        "user=" + model.getUserName() +
-                        ", text=" + model.getTextMessage() +
-                        ", time=" + model.getMessageTime());
+                // Определяем, кто отправил сообщение
+                if (model.getSender().equals(FirebaseAuth.getInstance().getCurrentUser().getUid())) {
+                    messageContainer.setBackgroundResource(R.drawable.message_background_user);
+                    ((LinearLayout.LayoutParams) messageContainer.getLayoutParams()).gravity = Gravity.END;
+                } else {
+                    messageContainer.setBackgroundResource(R.drawable.message_background_other);
+                    ((LinearLayout.LayoutParams) messageContainer.getLayoutParams()).gravity = Gravity.START;
+                }
 
-                // Установить данные
-                mess_user.setText(model.getUserName());
                 mess_text.setText(model.getTextMessage());
-                mess_time.setText(DateFormat.format("dd-MM-yyyy HH:mm:ss", model.getMessageTime()));
+
+                if (model.getMessageTime() > 0) {
+                    mess_time.setText(DateFormat.format("HH:mm", model.getMessageTime()));
+                } else {
+                    mess_time.setText("Unknown time");
+                }
             }
+
+
         };
 
-        Log.d("Chat", "Adapter created. Setting adapter to ListView.");
-        // Установить адаптер
         listOfMessages.setAdapter(adapter);
-
-        Log.d("Chat", "Adapter set. Starting adapter listening.");
         adapter.startListening();
     }
-
 
     @Override
     protected void onStart() {
@@ -157,7 +187,7 @@ public class Chat extends AppCompatActivity {
             startActivityForResult(AuthUI.getInstance().createSignInIntentBuilder().build(), SIGN_IN_CODE);
         } else {
             Log.d("Chat", "User already logged in.");
-            displayAllMessages();
+            displayAllMessages(chatId);
         }
     }
 
@@ -166,7 +196,22 @@ public class Chat extends AppCompatActivity {
         super.onStop();
         Log.d("Chat", "onStop called. Stopping adapter.");
         if (adapter != null) {
-            adapter.stopListening();  // Stop listening when activity is stopped
+            adapter.stopListening();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == SIGN_IN_CODE) {
+            if (resultCode == RESULT_OK) {
+                Snackbar.make(chat, "Вы авторизованы", Snackbar.LENGTH_LONG).show();
+                displayAllMessages(chatId);
+            } else {
+                Snackbar.make(chat, "Вы не авторизованы", Snackbar.LENGTH_LONG).show();
+                finish();
+            }
         }
     }
 }

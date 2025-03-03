@@ -22,7 +22,7 @@
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Findmate"
+        android:theme="@style/Base.Theme.DayFindmate"
         tools:targetApi="31">
 
         <!-- Сервис для обработки push-уведомлений -->

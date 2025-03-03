@@ -60,7 +60,9 @@
         android:fontFamily="@font/fontbold"
         android:text="Имя, Фамилия"
         android:textColor="#000000"
-        android:textSize="16dp"
+        android:textSize="16sp"
+        android:maxLines="2"
+        android:ellipsize="end"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageView8" />
 
@@ -150,8 +152,10 @@
         android:layout_marginStart="56dp"
         android:layout_marginTop="36dp"
         android:fontFamily="@font/fontreg"
-        android:text="Дополнительное описание: ****'"
+        android:text="Дополнительное описание: ****"
         android:textColor="#000000"
+        android:maxLines="7"
+        android:ellipsize="end"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView27" />
@@ -202,5 +206,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Затемняющий фон -->
+    <FrameLayout
+        android:id="@+id/overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone">
+
+    <ProgressBar
+        android:id="@+id/loadingProgressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true" />
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

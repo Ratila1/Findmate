@@ -1,26 +1,37 @@
-<!-- list_item.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="8dp">
 
-    <TextView
-        android:id="@+id/message_user"
+    <!-- Контейнер для сообщения -->
+    <LinearLayout
+        android:id="@+id/message_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="User"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:padding="10dp"
+        android:background="@drawable/message_background_other"
+        android:layout_gravity="start"> <!-- По умолчанию слева -->
 
-    <TextView
-        android:id="@+id/message_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Message" />
+        <!-- Текст сообщения -->
+        <TextView
+            android:id="@+id/message_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/fontreg"
+            android:text="Message"
+            android:textColor="@android:color/black" />
 
-    <TextView
-        android:id="@+id/message_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Time" />
+        <!-- Время сообщения -->
+        <TextView
+            android:id="@+id/message_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/fontreg"
+            android:text="Time"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:gravity="end" />
+    </LinearLayout>
 </LinearLayout>
