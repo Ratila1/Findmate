@@ -41,6 +41,16 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.stream.Collectors;
 
+import android.Manifest;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -55,12 +65,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean isExpanded = false; // Флаг состояния imageView7
     private ProgressBar loadingProgressBar;
     private FrameLayout overlay;
+    private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        requestNotificationPermission();
         db = FirebaseFirestore.getInstance();
 
         ageName = findViewById(R.id.age_name);
@@ -103,17 +114,88 @@ public class MainActivity extends AppCompatActivity {
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
                     if (!task.isSuccessful()) {
-                        Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                        Log.w("MainActivity", "Fetching FCM registration token failed", task.getException());
                         return;
                     }
 
                     // Получаем токен
                     String token = task.getResult();
-                    Log.d(TAG, "FCM Token: " + token);
+                    Log.d("MainActivity", "FCM Token: " + token);
 
-                    // Отправляем токен на сервер (если нужно)
-                    sendRegistrationToServer(token);
+                    // Сохраняем токен в Firestore
+                    FirebaseFirestore db = FirebaseFirestore.getInstance();
+                    String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    db.collection("users").document(userId).set(new UserToken(token));
                 });
+    }
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Для Android 13+ требуется специальное разрешение POST_NOTIFICATIONS
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // Разрешение не предоставлено, запрашиваем его
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        NOTIFICATION_PERMISSION_REQUEST_CODE
+                );
+            } else {
+                // Разрешение уже предоставлено, создаем канал уведомлений
+                createNotificationChannel();
+            }
+        } else {
+            // Для версий ниже Android 13 разрешение автоматически предоставлено
+            createNotificationChannel();
+        }
+    }
+
+    /**
+     * Создает канал уведомлений для Android Oreo и выше.
+     */
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    "findmate_channel",
+                    "FindMate Notifications",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+            channel.setDescription("Channel for FindMate app notifications");
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
+        }
+
+        // Подписываем пользователя на топик уведомлений Firebase
+        FirebaseMessaging.getInstance().subscribeToTopic("general")
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d("Notification", "User subscribed to 'general' topic");
+                    } else {
+                        Log.e("Notification", "Failed to subscribe user to 'general' topic", task.getException());
+                    }
+                });
+    }
+
+    /**
+     * Обрабатывает результат запроса разрешений.
+     *
+     * @param requestCode  Код запроса.
+     * @param permissions  Массив запрошенных разрешений.
+     * @param grantResults Результаты запросов разрешений.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Разрешение предоставлено, создаем канал уведомлений
+                createNotificationChannel();
+            } else {
+                // Разрешение отклонено, показываем сообщение
+                Toast.makeText(this, "Уведомления отключены. Некоторые функции могут быть недоступны.", Toast.LENGTH_LONG).show();
+            }
+        }
     }
     private void sendRegistrationToServer(String token) {
         // Пример отправки токена на сервер через HTTP-запрос
@@ -621,5 +703,16 @@ public class MainActivity extends AppCompatActivity {
         ObjectAnimator animator = ObjectAnimator.ofFloat(view, "translationY", newMarginTop);
         animator.setDuration(300);
         animator.start();
+    }
+    class UserToken {
+        private String token;
+
+        public UserToken(String token) {
+            this.token = token;
+        }
+
+        public String getToken() {
+            return token;
+        }
     }
 }
